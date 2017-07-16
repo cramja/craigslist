@@ -6,8 +6,6 @@ import sqlite3 as sql
 import os
 
 # Craigslist search URL
-# BASE_URL = ('http://chicago.craigslist.org/search/'
-#            '?sort=rel&areaID=11&subAreaID=&query={0}&catAbb=sss')
 BASE_URL = ('https://sfbay.craigslist.org/search/{}?query={}&sort=date&srchType=T&search_distance=10&postal=94025')
 DEFAULTS = {
     "params": "&sort=date&srchType=T&search_distance=10&postal=94025",
@@ -25,6 +23,11 @@ def dprint(msg, *args):
 
 
 def get_conn(name):
+    """
+    Get a connection to a sql database. Creates db if not created
+    :param name: Database name
+    :return: A database connection.
+    """
     if not os.path.isfile(name):
         conn = sql.connect(name)
         dprint("db {} not found, creating db", name)
@@ -52,7 +55,6 @@ def add_result(conn, query_name, post_time, id, title, place, price, url, raw):
         return 1
     except sql.IntegrityError as e:
         return 0
-
 
 
 def active_queries(conn):
@@ -86,6 +88,11 @@ def get_query_result(category, search_term):
 
 
 def parse_results(raw_html):
+    """
+    Parse the html retrieved from the best site on the internet.
+    :param raw_html:
+    :return: List of map of interesting traits of the page.
+    """
     results = []
     soup = BeautifulSoup(raw_html, "html5lib")
     rows = soup.find('ul', 'rows').find_all('li', 'result-row')
@@ -113,10 +120,6 @@ def format_time(dt):
     return datetime.strftime(dt, '%Y-%m-%d %H:%M:%S')
 
 
-def utf8(string):
-    return string.encode(encoding='UTF-8', errors='strict')
-
-
 def main():
     my_queries = [("i_chair", 'fua', "ikea chair"), ("desk", "fua", "standing desk"), ("corolla", "cta", "toyota corolla manual"),]
     conn = get_conn(DEFAULTS['db_name'])
@@ -125,11 +128,11 @@ def main():
 
     do_active(conn)
 
-    before = 1
-    print "results from the {} day".format(before)
+    days_before = 1
+    print "results from the {} day".format(days_before)
     for q in my_queries:
         print q[0]
-        results = conn.execute("select post_time, title, price, place, url from results where query_name=? and post_time > ? order by post_time desc;", [q[0], datetime.now() - timedelta(days=before)]).fetchall()
+        results = conn.execute("select post_time, title, price, place, url from results where query_name=? and post_time > ? order by post_time desc;", [q[0], datetime.now() - timedelta(days=days_before)]).fetchall()
         for row in results:
             print row
 
