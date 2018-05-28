@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 SQL = {
     "create_table_watches":
         """
-create table if not exists watches (
+create table if not exists watch (
     name text unique, 
     url text);
     """,
@@ -21,11 +21,11 @@ create table if not exists watch_results (
     price int, 
     url text, 
     raw text, 
-    foreign key(watch_name) references watches(name) on delete cascade);
+    foreign key(watch_name) references watch(name) on delete cascade);
     """,
 
     "insert_watch": """
-insert into watches values (?,?);
+insert into watch values (?,?);
     """,
 
     "insert_watch_result": """
@@ -33,7 +33,7 @@ insert into watch_results values (?,?,?,?,?,?,?,?,?)
     """,
 
     "delete_watch": """
-delete from watches where name = ?;
+delete from watch where name = ?;
     """,
 
     "get_watch_results_since": """
@@ -41,8 +41,7 @@ select post_time, title, price, place, url from watch_results where watch_name=?
 """
 }
 
-DB = "/tmp/.cl-sqlite.db"
-
+DB = "/Users/marc/Downloads/.cl-sqlite.db"
 
 class WatchDb:
 
@@ -79,7 +78,7 @@ class WatchDb:
 
     def get_watches(self):
         cur = self.conn.cursor()
-        cur = cur.execute("select rowid, watches.* from watches")
+        cur = cur.execute("select rowid, watch.* from watch")
         return cur.fetchall()
 
     def get_watch_results(self, watch_name, hours_since):

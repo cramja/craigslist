@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}New Watch{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+    <label for="name">Name</label>
+    <input name="name" id="name" value="{{ request.form['name'] }}" required>
+
+    <label for="url">Url</label>
+    <input name="url" id="url" value="{{ request.form['url'] }}" required>
+
+    <label for="update_interval_minutes">Update Interval (min)</label>
+    <input name="update_interval_minutes" id="update_interval_minutes" value="{{ request.form['update_interval_minutes'] }}" required>
+
+    <input type="submit" value="Save">
+  </form>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Details{% endblock %}</h1>
+  <div><a href="{{ url_for('watch.update_search_results', id=id) }}">Force Update</a></div>
+{% endblock %}
+
+{% block content %}
+  {% for result in results %}
+    <article class="result">
+      <header>
+        <div>
+          <h1><a href="{{ result['url'] }}">{{ result['title'] }}</a></h1>
+          <div class="about">{{ result['hours_ago']|humanize() }}</div>
+          <div class="about">{{ result['price'] }}</div>
+        </div>
+      </header>
+    </article>
+    {% if not loop.last %}
+      <hr>
+    {% endif %}
+  {% endfor %}
+{% endblock %}

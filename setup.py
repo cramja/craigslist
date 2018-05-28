@@ -1,9 +1,12 @@
-from distutils.core import setup
+from setuptools import find_packages, setup
 
 setup(
-    name='AdWatcher',
-    version='0.1dev',
-    packages=['cl'],
-    license='Apache-2.0',
-    long_description="A tool for watching craigslist ads",
+    name='flaskr',
+    version='1.0.0',
+    packages=find_packages(),
+    include_package_data=True,
+    zip_safe=False,
+    install_requires=[
+        'flask',
+    ],
 )

@@ -17,7 +17,7 @@ class AdWatcher:
 
     def list_watches(self):
         for watch in self.db.get_watches():
-            print watch[1] + " " + watch[2]
+            print(watch[1] + " " + watch[2])
 
     def update_watch_results(self):
         watches = self.db.get_watches()
@@ -45,7 +45,7 @@ class AdWatcher:
             print("using default since time, " + hours_since)
 
         for result in self.db.get_watch_results(watch_name, hours_since):
-            print result
+            print(result)
 
 
 if __name__ == '__main__':
