@@ -1,31 +1,46 @@
 import time
 import sqlite3
-from cl.result_parser import get_and_parse
-from datetime import datetime
-import os
+from flaskr.result_parser import get_and_parse
+import sys
+from flaskr.db import Database
 
-db_file = os.path.dirname(os.path.realpath(".")) + "/instance/flaskr.sqlite"
-print(db_file)
-conn = sqlite3.connect(db_file, detect_types=sqlite3.PARSE_DECLTYPES)
-conn.row_factory = sqlite3.Row
 
-while True:
-    watches = conn.execute("SELECT * FROM watches WHERE last_search_time IS NULL OR " +
-                           " (julianday(CURRENT_TIMESTAMP) - julianday(last_search_time)) * 1440.0 " +
-                           " > update_interval_minutes ").fetchall()
-    for watch in watches:
-        print("updating watch {}".format(watch['name']))
-        try:
-            results = get_and_parse(watch['url'])
-            for result in results:
-                conn.execute(
-                    "INSERT OR IGNORE INTO watch_results (watch_id, post_time, query_time, cl_id, title, place, price, url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    (watch['id'], result['create_time'], datetime.now(), str(result['id']), result['title'], result['place'],
-                     result['price'], result['url']))
-            conn.execute("UPDATE watches SET last_search_time = datetime('now') WHERE id = ?", (str(watch['id'])))
-            conn.commit()
-        except Exception as e:
-            print("failed to get url {}: {}".format(watch['url'], e))
-    print("{} results updated".format(len(watches)))
+def run_forever(db, sleep_interval_seconds=10):
+    while True:
+        watches = db.get_pending_watches()
 
-    time.sleep(10)
+        for watch in watches:
+            print("attempting to update watch {}".format(watch['name']))
+            try:
+                results = get_and_parse(watch['url'])
+                for result in results:
+                    db.create_watch_result(watch['id'],
+                                           result['create_time'],
+                                           str(result['id']),
+                                           result['title'],
+                                           result['place'],
+                                           result['price'],
+                                           result['url'])
+                db.update_watch_last_search_time(watch['id'])
+                db.commit_pending()
+                print("updated successfully")
+            except Exception as e:
+                print("failed to get url {}: {}".format(watch['url'], e))
+
+        print("{} results updated, sleeping...\n".format(len(watches)))
+
+        time.sleep(sleep_interval_seconds)
+
+
+def main(args):
+    db_file = args[0]
+    sleep_interval = 10 if len(args) < 2 else int(args[1])
+
+    print("opening db {}".format(db_file))
+
+    run_forever(Database(sqlite3.connect(db_file, detect_types=sqlite3.PARSE_DECLTYPES)),
+                sleep_interval)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

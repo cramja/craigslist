@@ -4,9 +4,9 @@ from flask import (
 from werkzeug.exceptions import abort
 
 from flaskr.auth import login_required
-from flaskr.db import get_db
+from flaskr.db import open_db
 from datetime import datetime
-from cl.result_parser import get_and_parse
+from flaskr.result_parser import get_and_parse
 
 bp = Blueprint('watch', __name__)
 
@@ -14,12 +14,9 @@ bp = Blueprint('watch', __name__)
 @bp.route('/')
 @login_required
 def index():
-    db = get_db()
-    watches = db.execute(
-        'select create_time, name, url, last_search_time, update_interval_minutes, id from watches where user_id = ? ' +
-        ' order by create_time desc', (str(g.user["id"]))
-    ).fetchall()
-    return render_template('watch/index.html', watches=watches)
+    db = open_db()
+    return render_template('watch/index.html',
+                           watches=db.get_watches_by_user(g.user['id']))
 
 
 @bp.route('/create', methods=('GET', 'POST'))
@@ -37,13 +34,10 @@ def create():
         if error is not None:
             flash(error)
         else:
-            db = get_db()
-            db.execute(
-                'INSERT INTO watches (name, url, update_interval_minutes, last_search_time, user_id)'
-                ' VALUES (?, ?, ?, ?, ?)',
-                (name, url, update_interval_minutes, datetime.now(), g.user['id'])
-            )
-            db.commit()
+            db = open_db()
+            db.create_watch(name, url, g.user['id'], update_interval_minutes)
+            db.commit_pending()
+
             return redirect(url_for('watch.index'))
 
     return render_template('watch/create.html')
@@ -65,13 +59,9 @@ def update(id):
         if error is not None:
             flash(error)
         else:
-            db = get_db()
-            db.execute(
-                'UPDATE watches SET name = ?, url = ?'
-                ' WHERE id = ?',
-                (name, url, id)
-            )
-            db.commit()
+            db = open_db()
+            db.update_watch(id, name, url)
+            db.commit_pending()
             return redirect(url_for('watch.index'))
 
     return render_template('watch/update.html', watch=watch)
@@ -81,27 +71,23 @@ def update(id):
 @login_required
 def delete(id):
     get_watch(id)
-    db = get_db()
-    db.execute('DELETE FROM watches WHERE id = ? AND user_id = ?', (id, g.user['id']))
-    db.commit()
+    db = open_db()
+    db.delete_watch(id)
+    db.commit_pending()
     return redirect(url_for('watch.index'))
 
 
 @bp.route('/<int:id>/details', methods=('GET',))
 @login_required
 def get_details(id):
-    def dict_from_row(row):
-        return dict(zip(row.keys(), row))
-
     get_watch(id)  # does security check
     results = get_watch_results(id)
-    args = []
+    updated = []
     for result in results:
-        d = dict_from_row(result)
-        d['hours_ago'] = datetime.now() - datetime.strptime(d['post_time'], "%Y-%m-%d %H:%M:%S")
-        args.append(d)
+        result['hours_ago'] = datetime.now() - datetime.strptime(result['post_time'], "%Y-%m-%d %H:%M:%S")
+        updated.append(result)
 
-    return render_template('watch/details.html', results=args, id=id)
+    return render_template('watch/details.html', results=updated, id=id)
 
 
 @bp.route('/<int:id>/update_search_results', methods=('GET',))
@@ -116,12 +102,7 @@ def update_search_results(id):
 
 
 def get_watch(id, check_user=True):
-    watch = get_db().execute(
-        'SELECT w.id, name, url, create_time, update_interval_minutes, last_search_time, user_id, username'
-        ' FROM watches w JOIN user u ON w.user_id = u.id'
-        ' WHERE w.id = ?',
-        (id,)
-    ).fetchone()
+    watch = open_db().get_watch(id)
 
     if watch is None:
         abort(404, "watch with id {0} does not exist.".format(id))
@@ -133,30 +114,19 @@ def get_watch(id, check_user=True):
 
 
 def get_watch_results(id):
-    results = get_db().execute(
-        'SELECT id, post_time, cl_id, title, price, url'
-        ' FROM watch_results WHERE watch_id = ? order by post_time desc',
-        (id,)
-    ).fetchall()
-
-    return results
+    return open_db().get_watch_results(id)
 
 
 def update_watch_results(id):
     w = get_watch(id, False)
     results = get_and_parse(w['url'])
-    db = get_db()
+    db = open_db()
     for result in results:
-        db.execute(
-            "INSERT OR IGNORE INTO watch_results " +
-            "(watch_id, post_time, query_time, cl_id, title, place, price, url) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (w['id'],
-             result['create_time'],
-             datetime.now(),
-             result['id'],
-             result['title'],
-             result['place'],
-             result['price'],
-             result['url']))
-    db.commit()
+        db.create_watch_result(w['id'],
+                               result['create_time'],
+                               result['id'],
+                               result['title'],
+                               result['place'],
+                               result['price'],
+                               result['url'])
+    db.commit_pending()
