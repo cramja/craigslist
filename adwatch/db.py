@@ -47,8 +47,8 @@ class Database:
     def get_watches_by_user(self, user_id):
         return self.conn.execute(
             'select create_time, name, url, last_search_time, ' +
-            ' update_interval_minutes, id from watches where user_id = ? ' +
-            ' order by create_time desc', (user_id,)
+            ' update_interval_minutes, id, round((julianday(datetime(\'now\')) - julianday(last_search_time)) * 1440.0,1) as time_since_minutes from watches ' +
+            ' where user_id = ? order by create_time desc', (user_id,)
         ).fetchall()
 
     def get_pending_watches(self):
@@ -62,13 +62,13 @@ class Database:
             ' VALUES (?, ?, ?, ?, ?)',
             (name, url, update_interval_minutes, datetime.now(), user_id,))
 
-    def update_watch(self, id, name, url):
+    def update_watch(self, id, name, url, update_interval_min):
         self.conn.execute(
-            'UPDATE watches SET name = ?, url = ? WHERE id = ?',
-            (name, url, id,))
+            'UPDATE watches SET name = ?, url = ?, update_interval_minutes = ? WHERE id = ?',
+            (name, url, update_interval_min, id,))
 
-    def update_watch_last_search_time(self, id, time=datetime.now()):
-        self.conn.execute("UPDATE watches SET last_search_time = ? WHERE id = ?", (time, id,))
+    def update_watch_last_search_time(self, id):
+        self.conn.execute("UPDATE watches SET last_search_time = CURRENT_TIMESTAMP WHERE id = ?", (id,))
 
     def delete_watch(self, id):
         self.conn.execute('DELETE FROM watches WHERE id = ?', (id,))

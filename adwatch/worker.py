@@ -1,8 +1,8 @@
 import time
 import sqlite3
-from flaskr.result_parser import get_and_parse
 import sys
-from flaskr.db import Database
+from adwatch.db import Database
+from adwatch.result_parser import get_and_parse
 
 
 def run_forever(db, sleep_interval_seconds=10):
@@ -12,24 +12,31 @@ def run_forever(db, sleep_interval_seconds=10):
         for watch in watches:
             print("attempting to update watch {}".format(watch['name']))
             try:
-                results = get_and_parse(watch['url'])
-                for result in results:
-                    db.create_watch_result(watch['id'],
-                                           result['create_time'],
-                                           str(result['id']),
-                                           result['title'],
-                                           result['place'],
-                                           result['price'],
-                                           result['url'])
+                update_watch_results(db, watch['id'])
                 db.update_watch_last_search_time(watch['id'])
                 db.commit_pending()
-                print("updated successfully")
+                print("updated {} successfully".format(watch["name"]))
             except Exception as e:
                 print("failed to get url {}: {}".format(watch['url'], e))
 
         print("{} results updated, sleeping...\n".format(len(watches)))
 
         time.sleep(sleep_interval_seconds)
+
+
+def update_watch_results(db, watch_id):
+    watch = db.get_watch(watch_id)
+    results = get_and_parse(watch['url'])
+    for result in results:
+        db.create_watch_result(watch_id,
+                               result['create_time'],
+                               result['id'],
+                               result['title'],
+                               result['place'],
+                               result['price'],
+                               result['url'])
+    db.update_watch_last_search_time(watch['id'])
+    db.commit_pending()
 
 
 def main(args):

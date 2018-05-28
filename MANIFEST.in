@@ -1,4 +1,4 @@
-include flaskr/schema.sql
-graft flaskr/static
-graft flaskr/templates
+include adwatch/schema.sql
+graft adwatch/static
+graft adwatch/templates
 global-exclude *.pyc

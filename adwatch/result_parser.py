@@ -1,6 +1,7 @@
-from requests import request as req
+from datetime import datetime
+
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from requests import request as req
 
 
 def get_and_parse(url):
@@ -51,4 +52,3 @@ def format_time(dt):
 def get_current_time():
     return format_time(datetime.now())
 
-get_and_parse('https://sfbay.craigslist.org/search/mca?query=honda+rebel+500')

@@ -11,8 +11,8 @@ CREATE TABLE user (
 
 create table if not exists watches (
     id integer primary key autoincrement,
-    create_time datetime DEFAULT CURRENT_TIMESTAMP,
-    last_search_time datetime,
+    create_time timestamp DEFAULT CURRENT_TIMESTAMP,
+    last_search_time timestamp DEFAULT NULL,
     update_interval_minutes integer,
     name text unique,
     url text,
@@ -23,8 +23,8 @@ create table if not exists watches (
 create table if not exists watch_results (
     id integer primary key autoincrement,
     watch_id integer,
-    post_time datetime,
-    query_time datetime,
+    post_time timestamp,
+    query_time timestamp,
     cl_id int unique,
     title text,
     place text,

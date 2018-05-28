@@ -13,11 +13,13 @@
       <header>
         <div>
           <h1><a href="{{ url_for('watch.get_details', id=watch['id']) }}">{{ watch['name'] }}</a></h1>
-          <div class="about"><b>Created</b>  {{ watch['create_time']}}</div>
-          <div class="about"><b>Last Updated</b>  {{ watch['last_search_time'] }}</div>
-          <div class="about"><a href="{{ watch['url'] }}">Original Search</a></div>
+          <div class="about">
+            <a href="{{ url_for('watch.update', id=watch['id']) }}">Edit</a>
+            <a href="{{ watch['url'] }}">Original Search</a>
+          </div>
+          <div class="about"><b>Created</b>  {{ watch['create_time']|humanize('naturaldate')}}</div>
+          <div class="about"><b>Last Updated</b>  {{ watch['time_since_minutes'] }} minutes ago</div>
         </div>
-        <a class="action" href="{{ url_for('watch.update', id=watch['id']) }}">Edit</a>
       </header>
       <p class="body">{{ watch['body'] }}</p>
     </article>

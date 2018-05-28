@@ -1,4 +1,6 @@
-# Craigslist Watcher
+# Ad Watcher
+
+_an app for watching craigslist ads_
 
 ## Usage
 
@@ -7,13 +9,6 @@ mkdir venv
 virtualenv venv
 source venv/bin/activate
 
-pip install -r requirements.txt
-
-python main.py create-watch moto https://sfbay.craigslist.org/search/mca?query=honda+rebel+500
-
-python main.py update-watch-results
-
-python main.py list-watch-results moto 24h
 ```
 
 ## What's here

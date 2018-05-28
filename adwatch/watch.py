@@ -3,10 +3,10 @@ from flask import (
 )
 from werkzeug.exceptions import abort
 
-from flaskr.auth import login_required
-from flaskr.db import open_db
+from adwatch.auth import login_required
+from adwatch.db import open_db
+from adwatch.worker import update_watch_results
 from datetime import datetime
-from flaskr.result_parser import get_and_parse
 
 bp = Blueprint('watch', __name__)
 
@@ -51,6 +51,7 @@ def update(id):
     if request.method == 'POST':
         name = request.form['name']
         url = request.form['url']
+        update_interval_min = int(request.form['url'])
         error = None
 
         if not name:
@@ -60,7 +61,7 @@ def update(id):
             flash(error)
         else:
             db = open_db()
-            db.update_watch(id, name, url)
+            db.update_watch(id, name, url, update_interval_min)
             db.commit_pending()
             return redirect(url_for('watch.index'))
 
@@ -82,22 +83,21 @@ def delete(id):
 def get_details(id):
     get_watch(id)  # does security check
     results = get_watch_results(id)
-    updated = []
     for result in results:
-        result['hours_ago'] = datetime.now() - datetime.strptime(result['post_time'], "%Y-%m-%d %H:%M:%S")
-        updated.append(result)
+        result['hours_ago'] = datetime.now() - result['post_time']
 
-    return render_template('watch/details.html', results=updated, id=id)
+    return render_template('watch/details.html', results=results, id=id)
 
 
 @bp.route('/<int:id>/update_search_results', methods=('GET',))
 @login_required
 def update_search_results(id):
     try:
-        update_watch_results(id)
+        update_watch_results(open_db(), id)
     except Exception as e:
         flash("failed to get watch url: {}. Try updating it...".format(e))
         return redirect(url_for('watch.update', id=id))
+    flash("update successful")
     return redirect(url_for('watch.get_details', id=id))
 
 
@@ -116,17 +116,3 @@ def get_watch(id, check_user=True):
 def get_watch_results(id):
     return open_db().get_watch_results(id)
 
-
-def update_watch_results(id):
-    w = get_watch(id, False)
-    results = get_and_parse(w['url'])
-    db = open_db()
-    for result in results:
-        db.create_watch_result(w['id'],
-                               result['create_time'],
-                               result['id'],
-                               result['title'],
-                               result['place'],
-                               result['price'],
-                               result['url'])
-    db.commit_pending()
